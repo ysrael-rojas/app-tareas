@@ -185,4 +185,4 @@ Eliminado: `app.js` (su contenido se distribuye en `src/store/store.js` y los co
 
 ## Evidence / commits
 
-_(se actualiza al cerrar cada tarea)_
+- **Tarea 1 / Tooling foundation** — commit work-unit `117eed0` (`chore(tooling): add Vite + Vitest + React project setup`). Archivos: `package.json` (27 líneas, React 18 + Vite 5 + Vitest 2 + RTL como devDeps), `vite.config.js` (11 líneas, plugin React, dev server puerto 5173), `vitest.config.js` (11 líneas, jsdom env, globals, incluye `tests/**/*.test.{js,jsx}`), `package-lock.json` (3179 líneas, lockfile de 172 paquetes), `.gitignore` actualizado con `node_modules/`, `dist/`, `coverage/`, `.vite/`, `.vitest-cache/`, OS junk y logs, y este mismo feature doc (188 líneas, plan de 10 tareas). Validación previa (delegada a `gentle-ai-verify`): `npm install` exit 0 en ~27s, `npx vite --version` → `vite/5.4.21`, `npx vitest --version` → `vitest/2.1.9`, binarios presentes en `node_modules/.bin/`, `npx vite build` produjo `dist/` end-to-end (4 módulos transformados, 192ms). Warnings informativos no bloqueantes: `whatwg-encoding@3.1.1` deprecado (transitivo de jsdom), 5 vulnerabilidades npm en devDeps transitivas.
