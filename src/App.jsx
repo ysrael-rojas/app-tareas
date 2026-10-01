@@ -4,16 +4,16 @@
  * Arquitectura: la Store vive fuera de React (cerrada en `createStore`) y se
  * entrega a los componentes vía Context (`StoreContext` + `StoreProvider`).
  * `useStore` recupera la Store del Context. El shell renderiza el
- * `<TaskForm />` (creación, tarea 5), el `<TaskList />` (lista con toggle,
- * tarea 6), y el flujo de edición inline + delete (tarea 7). El estado del
- * filtro (`currentFilter`) vive aquí para que el futuro `<Filters />`
- * (tarea 8) lo lea/escriba sin prop drilling; por ahora queda fijado en
- * `"all"`.
+ * `<TaskForm />` (creación, tarea 5), el `<Filters />` (filtros con ARIA
+ * tabs, tarea 8), y el `<TaskList />` (lista con toggle, edición inline y
+ * delete, tareas 6-7). El estado del filtro (`currentFilter`) vive aquí;
+ * `<Filters />` lo lee y lo escribe.
  */
 import { useState, useContext, createContext } from 'react';
 import { createStore } from './store/store.js';
 import { announce } from './lib/announce.js';
 import TaskForm from './components/TaskForm.jsx';
+import Filters from './components/Filters.jsx';
 import TaskList from './components/TaskList.jsx';
 
 export const StoreContext = createContext(null);
@@ -84,6 +84,7 @@ function Shell() {
       </header>
       <main className="app-main">
         <TaskForm />
+        <Filters currentFilter={currentFilter} onChange={setCurrentFilter} />
         <TaskList
           filter={currentFilter}
           onToggle={handleToggle}
