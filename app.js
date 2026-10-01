@@ -244,19 +244,92 @@ function createTaskElement(task) {
   return li;
 }
 
+/* ---------- Filtros y contadores ---------- */
+
+const VALID_FILTERS = Object.freeze(new Set(["all", "pending", "completed"]));
+let currentFilter = "all";
+
+function isValidFilter(name) {
+  return VALID_FILTERS.has(name);
+}
+
+function setFilter(name) {
+  if (!isValidFilter(name)) return;
+  currentFilter = name;
+  for (const tab of document.querySelectorAll(".filters__tab")) {
+    const isActive = tab.dataset.filter === name;
+    tab.classList.toggle("is-active", isActive);
+    tab.setAttribute("aria-pressed", String(isActive));
+  }
+}
+
+function getFilteredTasks(store) {
+  const tasks = store.getAll();
+  if (currentFilter === "pending") return tasks.filter((t) => !t.completed);
+  if (currentFilter === "completed") return tasks.filter((t) => t.completed);
+  return tasks;
+}
+
+function getCounts(store) {
+  const tasks = store.getAll();
+  let pending = 0;
+  let completed = 0;
+  for (const t of tasks) {
+    if (t.completed) completed += 1;
+    else pending += 1;
+  }
+  return { all: tasks.length, pending, completed };
+}
+
+function emptyMessageFor(filter, total) {
+  if (total === 0) {
+    return "No hay tareas. Crea la primera con el formulario de arriba.";
+  }
+  if (filter === "pending") return "No hay tareas pendientes. ¡Bien hecho!";
+  if (filter === "completed") return "Aún no has completado ninguna tarea.";
+  return "";
+}
+
+function setupFilters(store) {
+  const filters = document.querySelector(".filters");
+  if (!filters) return;
+  filters.addEventListener("click", (event) => {
+    const tab = event.target.closest(".filters__tab");
+    if (!tab || !filters.contains(tab)) return;
+    const name = tab.dataset.filter;
+    if (!isValidFilter(name)) return;
+    setFilter(name);
+    render(store);
+  });
+}
+
 function render(store) {
   const list = document.querySelector(SELECTORS.list);
   const empty = document.querySelector(SELECTORS.empty);
   if (!list || !empty) return;
 
-  const tasks = store.getAll();
-  // replaceChildren con un fragment construido: evita reflows por tarea.
+  const counts = getCounts(store);
+  for (const key of VALID_FILTERS) {
+    const el = document.querySelector(`[data-counter="${key}"]`);
+    if (el) el.textContent = String(counts[key]);
+  }
+
+  // Sincroniza tabs (defensivo: cubre el primer render sin pasar por setFilter).
+  setFilter(currentFilter);
+
+  const tasks = getFilteredTasks(store);
   const frag = document.createDocumentFragment();
   for (const task of tasks) {
     frag.appendChild(createTaskElement(task));
   }
   list.replaceChildren(frag);
-  empty.hidden = tasks.length > 0;
+
+  if (tasks.length === 0) {
+    empty.textContent = emptyMessageFor(currentFilter, counts.all);
+    empty.hidden = false;
+  } else {
+    empty.hidden = true;
+  }
 }
 
 function setupForm(store) {
@@ -426,12 +499,9 @@ function setupTaskEvents(store) {
       render(store);
       return;
     }
-    li.classList.toggle("is-completed", updated.completed);
-    target.checked = updated.completed;
-    target.setAttribute(
-      "aria-label",
-      `Marcar "${updated.title}" como ${updated.completed ? "pendiente" : "completada"}`,
-    );
+    // Re-render para mantener contadores y filtro coherentes. El coste
+    // es un reflow trivial (≤pocas docenas de nodos en uso normal).
+    render(store);
   });
 
   list.addEventListener("submit", (event) => {
@@ -459,6 +529,7 @@ function init() {
   const store = createStore();
   render(store);
   setupForm(store);
+  setupFilters(store);
   setupTaskEvents(store);
   console.info(`[${config.appName}] initialized`);
 }
