@@ -1,5 +1,8 @@
 // Modelo + persistencia (Store) de App Tareas.
-// Port directo y sin cambios semánticos de la capa Store de `app.js`.
+// Capa canónica: la lógica de modelo y persistencia vive aquí, fuera
+// de React. La app se suscribe vía useSyncExternalStore
+// (src/store/useTasks.js) y la suite de unit tests verifica el
+// comportamiento directamente.
 // Tarea 3 de odd/tasks/react-vite-migration.md.
 //
 // Elección de exports: son públicos `config`, `createStore` y los helpers
