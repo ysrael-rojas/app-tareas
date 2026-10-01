@@ -16,6 +16,12 @@ coverage/
 # Vitest cache
 .vitest-cache/
 
+# Playwright artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+.playwright-mcp/
+
 # Editor / OS
 .DS_Store
 Thumbs.db
