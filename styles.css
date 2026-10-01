@@ -1,0 +1,32 @@
+/* App Tareas — estilos
+ * Mobile-first. Capas: tokens, reset/base, layout, componentes, utilidades.
+ * La implementación detallada llega en la tarea 2 (HTML + CSS shell).
+ */
+:root {
+  --color-bg: #ffffff;
+  --color-fg: #1a1a1a;
+  --color-muted: #6b6b6b;
+  --color-accent: #2563eb;
+  --color-danger: #b91c1c;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --radius: 8px;
+  --font-stack: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-stack);
+  line-height: 1.5;
+}
