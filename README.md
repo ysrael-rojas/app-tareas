@@ -12,21 +12,24 @@ persistencia local en el navegador. Sin backend, sin build, sin dependencias.
 
 ## Cómo abrir
 
-Opción 1 — abrir el archivo directamente:
+La app usa `<script type="module">`, que los navegadores bloquean cuando se abre
+el archivo directamente desde el disco (`file://`) por seguridad (CORS).
+**Hay que servirla con un servidor estático local.** Cualquiera de estos vale:
 
 ```bash
-# Doble click en index.html, o:
-xdg-open index.html        # Linux
-open index.html            # macOS
-start index.html           # Windows
-```
-
-Opción 2 — servir local (recomendado para desarrollo):
-
-```bash
+# Python (ya viene en macOS/Linux y suele estar en Windows)
 python -m http.server 8000
-# luego abre http://localhost:8000
+
+# Node
+npx http-server -p 8000
+
+# PHP
+php -S localhost:8000
 ```
+
+Luego abre **http://localhost:8000** en el navegador.
+
+Para parar el servidor de Python: `Ctrl+C` en la terminal donde lo lanzaste.
 
 ## Estructura
 
