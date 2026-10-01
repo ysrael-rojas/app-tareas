@@ -31,6 +31,34 @@ and its UI in the React components.
   task, switch filters with mouse and keyboard (ArrowLeft/Right,
   Home/End), confirm the live region announces actions.
 
+## E2E (Playwright)
+
+Real-browser smoke suite, complementary to the Vitest+RTL acceptance
+suite. It runs against the production build (`npm run build` + `npm run
+preview`) in Chromium and covers what jsdom cannot: real localStorage
+across a full reload, real keyboard events, the real `window.confirm`
+modal, real ARIA associations, and real CSS rendering.
+
+- `npm run test:e2e` — runs Playwright. The `webServer` config in
+  `playwright.config.js` builds and previews automatically, so no manual
+  server is needed.
+- `npm run test:all` — runs both suites (`npm test` + `npm run test:e2e`).
+- `npm test` — Vitest only (fast inner loop); it does NOT run Playwright.
+- Browser: **chromium only** at this stage. Adding firefox/webkit means
+  adding `projects` entries in `playwright.config.js`.
+- Specs live in `tests/e2e/`. The smoke suite (7 tests) is distinct from
+  the RTL acceptance suite (`tests/acceptance/app.test.jsx`, 28 checks):
+  RTL validates the 10 MVP criteria at the component level; Playwright
+  validates real-browser behavior only.
+- Manual tools: `npx playwright test --ui` opens the interactive debugger;
+  `npx playwright codegen http://localhost:4173` records user flows into
+  a spec file.
+
+Gotcha: the `webServer` config builds and previews automatically. If
+port 4173 is already in use, Playwright reuses the existing server
+locally (`reuseExistingServer: !process.env.CI`); in CI it always starts
+its own.
+
 ## Structure
 
 - `src/main.jsx` mounts `<App />` into `#root`.
