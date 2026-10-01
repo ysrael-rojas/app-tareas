@@ -3,15 +3,85 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta
+      name="description"
+      content="App Tareas: gestiona tus tareas personales con persistencia local en el navegador."
+    />
     <title>App Tareas</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <!-- App shell. Markup, semántica y estilos se completan en la tarea 2. -->
-    <main id="app" data-state="bootstrap">
-      <h1>App Tareas</h1>
-      <p>Bootstrap inicial. La UI llega en próximas tareas.</p>
+    <a class="skip-link" href="#task-form">Saltar al formulario</a>
+
+    <header class="app-header">
+      <h1 class="app-header__title">App Tareas</h1>
+      <p class="app-header__subtitle">
+        Gestiona tus tareas. Se guardan en este navegador.
+      </p>
+    </header>
+
+    <main class="app-main">
+      <form
+        id="task-form"
+        class="task-form"
+        aria-label="Crear nueva tarea"
+        novalidate
+      >
+        <div class="task-form__row">
+          <label class="visually-hidden" for="task-title">Título de la tarea</label>
+          <input
+            id="task-title"
+            name="title"
+            type="text"
+            class="task-form__input"
+            placeholder="¿Qué necesitas hacer?"
+            autocomplete="off"
+            maxlength="200"
+            required
+          />
+          <button type="submit" class="task-form__submit">Agregar</button>
+        </div>
+      </form>
+
+      <nav class="filters" aria-label="Filtros de tareas">
+        <button
+          type="button"
+          class="filters__tab is-active"
+          data-filter="all"
+          aria-pressed="true"
+        >
+          Todas <span class="filters__count" data-counter="all">0</span>
+        </button>
+        <button
+          type="button"
+          class="filters__tab"
+          data-filter="pending"
+          aria-pressed="false"
+        >
+          Pendientes <span class="filters__count" data-counter="pending">0</span>
+        </button>
+        <button
+          type="button"
+          class="filters__tab"
+          data-filter="completed"
+          aria-pressed="false"
+        >
+          Completadas <span class="filters__count" data-counter="completed">0</span>
+        </button>
+      </nav>
+
+      <ul id="task-list" class="task-list" aria-live="polite"></ul>
+
+      <p id="empty-state" class="empty-state" hidden>
+        No hay tareas. Crea la primera con el formulario de arriba.
+      </p>
     </main>
+
+    <footer class="app-footer">
+      <small>Datos guardados localmente en este navegador (localStorage).</small>
+    </footer>
+
     <script src="./app.js" type="module" defer></script>
   </body>
 </html>
