@@ -4,11 +4,11 @@
  * Arquitectura: la Store vive fuera de React (cerrada en `createStore`) y se
  * entrega a los componentes vía Context (`StoreContext` + `StoreProvider`).
  * `useStore` recupera la Store del Context. El shell renderiza el
- * `<TaskForm />` (formulario de creación, tarea 5) y el `<TaskList />`
- * (lista con toggle, tarea 6). El estado del filtro (`currentFilter`) vive
- * aquí para que el futuro `<Filters />` (tarea 8) lo lea/escriba sin prop
- * drilling; por ahora queda fijado en `"all"`. Los componentes restantes
- * (`<Filters />`, `<TaskEditForm />`) llegan en las tareas 7-8.
+ * `<TaskForm />` (creación, tarea 5), el `<TaskList />` (lista con toggle,
+ * tarea 6), y el flujo de edición inline + delete (tarea 7). El estado del
+ * filtro (`currentFilter`) vive aquí para que el futuro `<Filters />`
+ * (tarea 8) lo lea/escriba sin prop drilling; por ahora queda fijado en
+ * `"all"`.
  */
 import { useState, useContext, createContext } from 'react';
 import { createStore } from './store/store.js';
@@ -53,12 +53,25 @@ function Shell() {
     }
   }
 
-  function handleEdit(_id) {
-    // STUB: wired in task 7 (TaskEditForm).
+  function handleUpdate(id, patch) {
+    const updated = store.update(id, patch);
+    if (updated) {
+      announce(`Tarea actualizada: ${updated.title}`);
+    }
   }
 
-  function handleDelete(_id) {
-    // STUB: wired in task 7 (delete with confirm + focus return).
+  function handleDelete(id) {
+    const task = store.getById(id);
+    if (!task) return;
+    const ok = window.confirm(`¿Eliminar la tarea "${task.title}"?`);
+    if (!ok) return;
+    store.remove(id);
+    announce(`Tarea eliminada: ${task.title}`);
+    // Devolver el foco al input del formulario de creación: es el lugar
+    // natural al que un usuario va tras eliminar (crear otra tarea).
+    // Cuando llegue Filters (tarea 8) podemos refinar esto para apuntar
+    // al tab 'Todas' si el filtro activo queda vacío, igual que el MVP.
+    document.getElementById('task-title')?.focus();
   }
 
   return (
@@ -74,7 +87,7 @@ function Shell() {
         <TaskList
           filter={currentFilter}
           onToggle={handleToggle}
-          onEdit={handleEdit}
+          onUpdate={handleUpdate}
           onDelete={handleDelete}
         />
       </main>

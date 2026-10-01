@@ -1,24 +1,59 @@
-import { useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import TaskEditForm from './TaskEditForm.jsx';
 
 /**
- * Single task row. Presentational: delegates the mutation through callbacks.
+ * Single task row. Presentational: delegates mutations through callbacks.
  *
  * Props:
  * - task: { id, title, description, completed, createdAt, updatedAt }
  * - onToggle(id): called when the user flips the checkbox.
- * - onEdit(id):  called when the user clicks Edit. STUB in this task — the
- *   handler passed in by App is a no-op. The button renders as aria-disabled.
- * - onDelete(id): same as onEdit, STUB until task 7.
+ * - onUpdate(id, patch): called by TaskEditForm on save. Parent calls
+ *   store.update and announces.
+ * - onDelete(id): called when the user clicks Eliminar. Parent does
+ *   confirm + store.remove + announce + focus return.
  *
- * The checkbox `useRef` is reserved for future focus management (e.g. returning
- * focus after an edit/delete in task 7); it is kept intentionally even though
- * it has no behavior today.
+ * Local state:
+ * - isEditing: when true, the row renders <TaskEditForm> instead of the
+ *   display markup. After save or cancel, focus returns to the Edit
+ *   button via the useEffect at the bottom of this file.
  */
-export default function TaskItem({ task, onToggle, onEdit, onDelete }) {
+export default function TaskItem({ task, onToggle, onUpdate, onDelete }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const editBtnRef = useRef(null);
+  // Reserved for future focus management; kept bound but unused today.
   const checkboxRef = useRef(null);
+  const wasEditingRef = useRef(false);
 
-  function handleChange() {
-    onToggle(task.id);
+  useEffect(() => {
+    if (wasEditingRef.current && !isEditing) {
+      editBtnRef.current?.focus();
+    }
+    wasEditingRef.current = isEditing;
+  }, [isEditing]);
+
+  function handleSave(patch) {
+    onUpdate(task.id, patch);
+    setIsEditing(false);
+  }
+
+  function handleCancel() {
+    setIsEditing(false);
+  }
+
+  function handleEditClick() {
+    setIsEditing(true);
+  }
+
+  function handleDeleteClick() {
+    onDelete(task.id);
+  }
+
+  if (isEditing) {
+    return (
+      <li className="task task--editing" data-id={task.id}>
+        <TaskEditForm task={task} onSave={handleSave} onCancel={handleCancel} />
+      </li>
+    );
   }
 
   return (
@@ -28,7 +63,7 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }) {
         type="checkbox"
         className="task__toggle"
         checked={task.completed}
-        onChange={handleChange}
+        onChange={() => onToggle(task.id)}
         aria-label={`Marcar "${task.title}" como ${task.completed ? 'pendiente' : 'completada'}`}
       />
       <div className="task__content">
@@ -39,10 +74,11 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }) {
       </div>
       <div className="task__actions">
         <button
+          ref={editBtnRef}
           type="button"
           className="task__action"
           aria-label={`Editar "${task.title}"`}
-          aria-disabled="true"
+          onClick={handleEditClick}
         >
           Editar
         </button>
@@ -50,7 +86,7 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }) {
           type="button"
           className="task__action task__action--danger"
           aria-label={`Eliminar "${task.title}"`}
-          aria-disabled="true"
+          onClick={handleDeleteClick}
         >
           Eliminar
         </button>

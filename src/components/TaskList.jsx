@@ -8,14 +8,14 @@ import TaskItem from './TaskItem.jsx';
  * Props:
  * - filter: 'all' | 'pending' | 'completed' (currently always 'all' in task 6;
  *   the future Filters component (task 8) will set this).
- * - onToggle, onEdit, onDelete: pass-through to each TaskItem.
+ * - onToggle, onUpdate, onDelete: pass-through to each TaskItem.
  *
  * The `<ul>` deliberately has no `aria-live`: list re-renders flow through the
  * Store pub-sub + `useSyncExternalStore`, and the dedicated `#app-announcer`
  * live region handles action feedback. Adding a second live region here would
  * reproduce the vanilla MVP's double-announce bug.
  */
-export default function TaskList({ filter, onToggle, onEdit, onDelete }) {
+export default function TaskList({ filter, onToggle, onUpdate, onDelete }) {
   const store = useStore();
   const tasks = useTasks(store);
 
@@ -26,9 +26,6 @@ export default function TaskList({ filter, onToggle, onEdit, onDelete }) {
       : tasks;
 
   if (filtered.length === 0) {
-    // Contextual empty state. For now, with filter always 'all', only the
-    // first message is reachable. The other two will land naturally when
-    // task 8 introduces the Filters component.
     const message = tasks.length === 0
       ? 'No hay tareas. Crea la primera con el formulario de arriba.'
       : filter === 'pending'
@@ -49,7 +46,7 @@ export default function TaskList({ filter, onToggle, onEdit, onDelete }) {
           key={task.id}
           task={task}
           onToggle={onToggle}
-          onEdit={onEdit}
+          onUpdate={onUpdate}
           onDelete={onDelete}
         />
       ))}
