@@ -40,14 +40,38 @@ app-tareas/
 
 ## Estado del proyecto
 
-Este proyecto sigue el flujo ODD. Las tareas viven en
-`odd/tasks/app-tareas-mvp.md` y registran los commits work-unit que cierran
-cada unidad de trabajo. Consulta ese archivo para el plan completo, los
-criterios de aceptación y el progreso.
+MVP cerrado (tarea 8/8). Plan y criterios en
+`odd/tasks/app-tareas-mvp.md`. Funcionalidad implementada: crear,
+editar inline, toggle completar, eliminar con confirmación, filtros
+todas/pendientes/completadas con contadores vivos, persistencia
+versionada en `localStorage`, accesibilidad WCAG (ARIA tabs, focus
+management, announcer, errores visibles).
+
+## Verificación
+
+La verificación automática del MVP vive en
+`/tmp/test-app-tareas/acceptance.mjs` (sandbox fuera del repo, con
+`jsdom` instalado solo para el test). Cubre los 10 criterios de
+aceptación del feature doc con 28 checks; resultado: **28/28 PASS**.
+
+Para ejecutarla de nuevo:
+
+```bash
+mkdir -p /tmp/test-app-tareas
+cd /tmp/test-app-tareas
+npm init -y
+npm install jsdom
+# copiar acceptance.mjs a este directorio y ejecutarlo
+node acceptance.mjs
+```
+
+El script lee `index.html` y `app.js` desde este repo, monta JSDOM,
+dispara los eventos esperados y verifica el resultado esperado.
 
 ## Cómo contribuir
 
-Por ahora el flujo es: implementar tarea → commit work-unit → actualizar
-`odd/tasks/app-tareas-mvp.md` con el hash del commit. No hay tests
-automatizados en v1; la verificación es manual contra los 10 criterios
-de aceptación listados en el feature doc.
+El flujo ODD sigue siendo: implementar tarea → commit work-unit →
+actualizar `odd/tasks/app-tareas-mvp.md` con el hash del commit. Si
+añades tareas, replica el patrón: actualiza el feature doc dentro del
+mismo commit cuando puedas, o con un commit de evidencia aparte si ya
+hiciste el commit work-unit.

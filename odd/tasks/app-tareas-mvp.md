@@ -120,3 +120,21 @@ un commit de evidencia para reflejar este bloque en el repo.
 - **Tarea 6 / Filtros + contadores** — commit work-unit `b01781f` (`feat(ui): add filters with live counters and contextual empty state`) + commit de evidencia `459da03`. Cambios: `app.js` añade `currentFilter` (módulo) + `VALID_FILTERS`, `setFilter()`, `getFilteredTasks()`, `getCounts()` (cuenta `all`, `pending`, `completed` en una sola pasada), `emptyMessageFor()` (mensaje contextual según filtro y total), y `setupFilters()` con event delegation sobre `.filters`. `render()` ahora actualiza los contadores en `.filters__count[data-counter]`, sincroniza los tabs (`is-active` + `aria-pressed`), pinta solo la lista filtrada y muestra empty state contextual ("No hay tareas pendientes. ¡Bien hecho!", "Aún no has completado ninguna tarea.", o el mensaje de "lista totalmente vacía"). El listener de `change` sobre el toggle ahora hace `render()` completo (en lugar de mutación local del li) para que los contadores se mantengan coherentes. `init()` cablea `setupFilters()`. Verificación: `node --check app.js` OK, **18/18 tests de integración con jsdom** que cubren render inicial, alta con XSS, contadores vivos, toggle, los tres filtros, empty contextual y persistencia.
 
 - **Tarea 7 / Pulido + accesibilidad** — commit work-unit `e3e6def` (`feat(a11y): announce actions, surface form errors, and use ARIA tabs`). Cambios: HTML reestructura el nav `.filters` a `role="tablist"` con tres `role="tab"` (cada uno con `aria-selected`, `aria-controls="task-list-panel"`, `tabindex` correcto para roving), añade `<div id="task-list-panel" role="tabpanel" aria-labelledby="filter-tab-all">`, `<p id="task-form-error" role="alert" hidden>` para mensajes de error visibles, `<div id="app-announcer" role="status" aria-live="polite" aria-atomic="true">` para anuncios a screen readers, y `aria-describedby="task-form-error"` en el input. `app.js` añade `announce(message)`, `setFilter` ahora gestiona `aria-selected` + `tabindex` (roving), `setupFilters` maneja `ArrowLeft`/`ArrowRight`/`Home`/`End` para navegar tabs (mueve foco + aplica filtro + anuncia), `setupForm` muestra error visible + anuncia con `aria-live`, el toggle anuncia el cambio, `handleSaveEdit` y el handler de Escape + Cancelar devuelven el foco al botón Editar de la tarea, `handleDelete` mueve el foco al filtro "Todas" si el filtro activo queda vacío. Estilos: `.task-form__error` (visible, color danger con buen contraste) y `.task-list-panel` (display:contents para no afectar layout). Verificación: `node --check app.js` OK, HTML balanceado, CSS llaves balanceadas (68/68), **25/25 tests de integración con jsdom** cubren ARIA tabs (role, aria-selected, aria-controls, tabindex roving, panel/aria-labelledby), error visible, announcer en add/toggle/delete/update, navegación con flechas, edit+save, validación overlong, persistencia.
+
+- **Tarea 8 / Verificación + commit de cierre** — commit work-unit `<pending>` (`chore(release): close MVP after 28/28 acceptance checks pass`). Cambios: este feature doc + README. Se ejecuta la suite de aceptación que cubre los 10 criterios del spec:
+
+  | # | Criterio | Checks | Resultado |
+  |---|---|---|---|
+  | 1 | App abre sin servidor, monta sin errores | 3 | PASS |
+  | 2 | Crear persiste tras recargar | 3 (incluye simulación de reload en JSDOM nuevo) | PASS |
+  | 3 | Toggle tachado y round-trip | 3 | PASS |
+  | 4 | Edit cambia título/descripción y persiste | 3 | PASS |
+  | 5 | Eliminar pide confirm y desaparece | 3 | PASS |
+  | 6 | Filtros + contadores coherentes | 5 (los 3 filtros) | PASS |
+  | 7 | Empty state contextual al filtro | 4 (vacío total + filtro sin matches) | PASS |
+  | 8 | Sin red en runtime | 1 (spy de fetch + XHR) | PASS |
+  | 9 | Mobile-first a 360px | 1 (CSS: shell con max-width token + breakpoint 768px) | PASS |
+  | 10 | Sin warnings de consola | 2 (error + warn) | PASS |
+  | **Total** | | **28** | **28/28 PASS** |
+
+  La suite corre con `node acceptance.mjs` desde un sandbox temporal con `jsdom` (instalado en `/tmp/test-app-tareas/node_modules/`, fuera del repo para no añadir dependencia de runtime). El script vive en `/tmp/test-app-tareas/acceptance.mjs` como artefacto de la verificación.
