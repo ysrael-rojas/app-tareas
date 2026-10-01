@@ -188,6 +188,10 @@ const SELECTORS = Object.freeze({
   input: "#task-title",
   list: "#task-list",
   empty: "#empty-state",
+  error: "#task-form-error",
+  filters: ".filters",
+  tab: ".filters__tab",
+  announcer: "#app-announcer",
 });
 
 function createTaskElement(task) {
@@ -253,13 +257,20 @@ function isValidFilter(name) {
   return VALID_FILTERS.has(name);
 }
 
+function announce(message) {
+  const region = document.querySelector(SELECTORS.announcer);
+  if (!region) return;
+  region.textContent = message;
+}
+
 function setFilter(name) {
   if (!isValidFilter(name)) return;
   currentFilter = name;
-  for (const tab of document.querySelectorAll(".filters__tab")) {
+  for (const tab of document.querySelectorAll(SELECTORS.tab)) {
     const isActive = tab.dataset.filter === name;
     tab.classList.toggle("is-active", isActive);
-    tab.setAttribute("aria-pressed", String(isActive));
+    tab.setAttribute("aria-selected", String(isActive));
+    tab.setAttribute("tabindex", isActive ? "0" : "-1");
   }
 }
 
@@ -291,15 +302,42 @@ function emptyMessageFor(filter, total) {
 }
 
 function setupFilters(store) {
-  const filters = document.querySelector(".filters");
+  const filters = document.querySelector(SELECTORS.filters);
   if (!filters) return;
+
   filters.addEventListener("click", (event) => {
-    const tab = event.target.closest(".filters__tab");
+    const tab = event.target.closest(SELECTORS.tab);
     if (!tab || !filters.contains(tab)) return;
     const name = tab.dataset.filter;
     if (!isValidFilter(name)) return;
     setFilter(name);
     render(store);
+    const counts = getCounts(store);
+    const label = name === "all" ? "Todas" : name === "pending" ? "Pendientes" : "Completadas";
+    announce(`Filtro ${label}: ${counts[name]} tarea${counts[name] === 1 ? "" : "s"}.`);
+  });
+
+  // Navegación con flechas (patrón ARIA tabs).
+  filters.addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    const tab = event.target.closest(SELECTORS.tab);
+    if (!tab) return;
+    event.preventDefault();
+    const tabs = Array.from(filters.querySelectorAll(SELECTORS.tab));
+    const currentIdx = tabs.indexOf(tab);
+    if (currentIdx === -1) return;
+    let nextIdx = currentIdx;
+    if (event.key === "ArrowRight") nextIdx = (currentIdx + 1) % tabs.length;
+    else if (event.key === "ArrowLeft") nextIdx = (currentIdx - 1 + tabs.length) % tabs.length;
+    else if (event.key === "Home") nextIdx = 0;
+    else if (event.key === "End") nextIdx = tabs.length - 1;
+    const nextTab = tabs[nextIdx];
+    nextTab.focus();
+    const name = nextTab.dataset.filter;
+    if (isValidFilter(name)) {
+      setFilter(name);
+      render(store);
+    }
   });
 }
 
@@ -335,28 +373,48 @@ function render(store) {
 function setupForm(store) {
   const form = document.querySelector(SELECTORS.form);
   const input = document.querySelector(SELECTORS.input);
+  const error = document.querySelector(SELECTORS.error);
   if (!form || !input) return;
+
+  function showError(message) {
+    input.setAttribute("aria-invalid", "true");
+    if (error) {
+      error.textContent = message;
+      error.hidden = false;
+    }
+  }
+
+  function clearError() {
+    input.removeAttribute("aria-invalid");
+    if (error) {
+      error.textContent = "";
+      error.hidden = true;
+    }
+  }
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const value = input.value;
     try {
-      store.add({ title: value });
+      const task = store.add({ title: value });
       input.value = "";
-      input.removeAttribute("aria-invalid");
+      clearError();
       render(store);
       input.focus();
+      announce(`Tarea agregada: ${task.title}`);
     } catch (err) {
-      input.setAttribute("aria-invalid", "true");
-      console.warn(`[${config.appName}] add failed:`, err);
+      const message =
+        err instanceof RangeError
+          ? "El título no puede estar vacío ni pasar de 200 caracteres."
+          : "No se pudo agregar la tarea. Inténtalo de nuevo.";
+      showError(message);
+      announce(message);
     }
   });
 
-  // Limpia aria-invalid al empezar a escribir otra vez.
+  // Limpia aria-invalid y el mensaje de error al editar el input.
   input.addEventListener("input", () => {
-    if (input.hasAttribute("aria-invalid")) {
-      input.removeAttribute("aria-invalid");
-    }
+    if (input.hasAttribute("aria-invalid")) clearError();
   });
 }
 
@@ -430,6 +488,7 @@ function enterEditMode(li, task, store) {
   li.replaceWith(edit.li);
   edit.titleInput.focus();
   edit.titleInput.select();
+  edit.li.dataset.editingId = task.id;
 }
 
 function handleSaveEdit(form, store) {
@@ -440,13 +499,22 @@ function handleSaveEdit(form, store) {
   const descInput = form.querySelector('textarea[name="description"]');
   if (!titleInput) return;
   try {
-    store.update(id, {
+    const updated = store.update(id, {
       title: titleInput.value,
       description: descInput ? descInput.value : "",
     });
     render(store);
+    if (updated) {
+      announce(`Tarea actualizada: ${updated.title}`);
+      // Devuelve el foco al botón Editar de la tarea recién renderizada.
+      const refreshed = document.querySelector(
+        `.task[data-id="${CSS.escape(id)}"] [data-action="edit"]`,
+      );
+      if (refreshed) refreshed.focus();
+    }
   } catch (err) {
     titleInput.setAttribute("aria-invalid", "true");
+    announce("No se pudo guardar: el título no puede estar vacío.");
     console.warn(`[${config.appName}] update failed:`, err);
   }
 }
@@ -456,8 +524,18 @@ function handleDelete(id, store) {
   if (!task) return;
   const ok = window.confirm(`¿Eliminar la tarea "${task.title}"?`);
   if (!ok) return;
+  const wasActive = currentFilter;
   store.remove(id);
   render(store);
+  announce(`Tarea eliminada: ${task.title}`);
+  // Tras eliminar, mueve el foco al filtro "Todas" si el filtro activo
+  // quedó sin contenido visible; en caso contrario, al filtro activo.
+  const targetFilter =
+    wasActive !== "all" && getCounts(store)[wasActive] === 0 ? "all" : wasActive;
+  const tab = document.querySelector(
+    `.filters__tab[data-filter="${targetFilter}"]`,
+  );
+  if (tab) tab.focus();
 }
 
 /* ---------- Eventos delegados sobre la lista ---------- */
@@ -478,7 +556,14 @@ function setupTaskEvents(store) {
     } else if (action === "delete") {
       handleDelete(id, store);
     } else if (action === "cancel-edit") {
+      const editingId = li.dataset.id;
       render(store);
+      if (editingId) {
+        const editBtn = document.querySelector(
+          `.task[data-id="${CSS.escape(editingId)}"] [data-action="edit"]`,
+        );
+        if (editBtn) editBtn.focus();
+      }
     }
   });
 
@@ -499,9 +584,10 @@ function setupTaskEvents(store) {
       render(store);
       return;
     }
-    // Re-render para mantener contadores y filtro coherentes. El coste
-    // es un reflow trivial (≤pocas docenas de nodos en uso normal).
     render(store);
+    announce(
+      `Tarea ${updated.completed ? "completada" : "marcada como pendiente"}: ${updated.title}`,
+    );
   });
 
   list.addEventListener("submit", (event) => {
@@ -517,7 +603,14 @@ function setupTaskEvents(store) {
     const form = event.target.closest(".task-edit-form");
     if (!form) return;
     event.preventDefault();
+    const editingId = form.closest(".task")?.dataset?.id;
     render(store);
+    if (editingId) {
+      const editBtn = document.querySelector(
+        `.task[data-id="${CSS.escape(editingId)}"] [data-action="edit"]`,
+      );
+      if (editBtn) editBtn.focus();
+    }
   });
 }
 

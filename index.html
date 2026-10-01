@@ -39,48 +39,86 @@
             autocomplete="off"
             maxlength="200"
             required
+            aria-describedby="task-form-error"
           />
           <button type="submit" class="task-form__submit">Agregar</button>
         </div>
+        <p
+          id="task-form-error"
+          class="task-form__error"
+          role="alert"
+          hidden
+        ></p>
       </form>
 
-      <nav class="filters" aria-label="Filtros de tareas">
+      <div
+        class="filters"
+        role="tablist"
+        aria-label="Filtros de tareas"
+      >
         <button
           type="button"
+          role="tab"
+          id="filter-tab-all"
           class="filters__tab is-active"
           data-filter="all"
-          aria-pressed="true"
+          aria-selected="true"
+          aria-controls="task-list-panel"
+          tabindex="0"
         >
           Todas <span class="filters__count" data-counter="all">0</span>
         </button>
         <button
           type="button"
+          role="tab"
+          id="filter-tab-pending"
           class="filters__tab"
           data-filter="pending"
-          aria-pressed="false"
+          aria-selected="false"
+          aria-controls="task-list-panel"
+          tabindex="-1"
         >
           Pendientes <span class="filters__count" data-counter="pending">0</span>
         </button>
         <button
           type="button"
+          role="tab"
+          id="filter-tab-completed"
           class="filters__tab"
           data-filter="completed"
-          aria-pressed="false"
+          aria-selected="false"
+          aria-controls="task-list-panel"
+          tabindex="-1"
         >
           Completadas <span class="filters__count" data-counter="completed">0</span>
         </button>
-      </nav>
+      </div>
 
-      <ul id="task-list" class="task-list" aria-live="polite"></ul>
+      <div
+        id="task-list-panel"
+        role="tabpanel"
+        aria-labelledby="filter-tab-all"
+        class="task-list-panel"
+      >
+        <ul id="task-list" class="task-list" aria-live="polite"></ul>
 
-      <p id="empty-state" class="empty-state" hidden>
-        No hay tareas. Crea la primera con el formulario de arriba.
-      </p>
+        <p id="empty-state" class="empty-state" hidden>
+          No hay tareas. Crea la primera con el formulario de arriba.
+        </p>
+      </div>
     </main>
 
     <footer class="app-footer">
       <small>Datos guardados localmente en este navegador (localStorage).</small>
     </footer>
+
+    <div
+      id="app-announcer"
+      class="visually-hidden"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
 
     <script src="./app.js" type="module" defer></script>
   </body>
