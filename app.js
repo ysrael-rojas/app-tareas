@@ -1,6 +1,6 @@
 // App Tareas — capa de aplicación
-// Capa Store (modelo + persistencia sobre localStorage).
-// Task 3 of odd/tasks/app-tareas-mvp.md.
+// Store (modelo + persistencia) y UI (render + form).
+// Tasks 3-4 of odd/tasks/app-tareas-mvp.md.
 
 const APP_NAMESPACE = "app-tareas";
 const STORAGE_KEY = `${APP_NAMESPACE}:v1`;
@@ -14,7 +14,9 @@ export const config = Object.freeze({
   descriptionMaxLength: 2000,
 });
 
-/* ---------- Helpers internos ---------- */
+/* =====================================================================
+ *  Store: modelo + persistencia sobre localStorage
+ * ===================================================================== */
 
 function makeId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -68,8 +70,6 @@ function isValidTaskShape(t) {
   );
 }
 
-/* ---------- Persistencia ---------- */
-
 function loadInitial() {
   if (typeof localStorage === "undefined") return [];
   let raw;
@@ -105,13 +105,10 @@ function persist(tasks) {
   localStorage.setItem(config.storageKey, payload);
 }
 
-/* ---------- Store público ---------- */
-
 export function createStore() {
   let tasks = loadInitial();
 
   function getAll() {
-    // Copia defensiva: previene mutación externa del estado interno.
     return tasks.slice();
   }
 
@@ -179,6 +176,138 @@ export function createStore() {
   return { getAll, getById, add, update, toggle, remove };
 }
 
-/* ---------- Bootstrap ---------- */
+/* =====================================================================
+ *  UI: render + form de creación
+ *  Usa textContent (no innerHTML) para todo el contenido user-provided,
+ *  previniendo XSS. Las interacciones de toggle/edit/delete llegan en
+ *  tareas 5-6; aquí solo se renderiza el shell y se conecta el alta.
+ * ===================================================================== */
 
-console.info(`[${config.appName}] store module loaded`);
+const SELECTORS = Object.freeze({
+  form: "#task-form",
+  input: "#task-title",
+  list: "#task-list",
+  empty: "#empty-state",
+});
+
+function createTaskElement(task) {
+  const li = document.createElement("li");
+  li.className = "task";
+  li.dataset.id = task.id;
+  if (task.completed) li.classList.add("is-completed");
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.className = "task__toggle";
+  checkbox.checked = task.completed;
+  checkbox.dataset.action = "toggle";
+  checkbox.setAttribute(
+    "aria-label",
+    `Marcar "${task.title}" como ${task.completed ? "pendiente" : "completada"}`,
+  );
+  // disabled en tarea 4; tarea 5 lo habilita cuando cablee el handler
+  checkbox.disabled = true;
+
+  const content = document.createElement("div");
+  content.className = "task__content";
+
+  const title = document.createElement("p");
+  title.className = "task__title";
+  title.textContent = task.title;
+
+  content.appendChild(title);
+
+  if (task.description) {
+    const desc = document.createElement("p");
+    desc.className = "task__description";
+    desc.textContent = task.description;
+    content.appendChild(desc);
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "task__actions";
+  // Botones editar/eliminar llegan en tarea 5. Marcadores data-action
+  // para que la tarea 5 los conecte sin tocar el render.
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "task__action";
+  editBtn.dataset.action = "edit";
+  editBtn.textContent = "Editar";
+  editBtn.setAttribute("aria-label", `Editar "${task.title}"`);
+  editBtn.disabled = true;
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "task__action task__action--danger";
+  deleteBtn.dataset.action = "delete";
+  deleteBtn.textContent = "Eliminar";
+  deleteBtn.setAttribute("aria-label", `Eliminar "${task.title}"`);
+  deleteBtn.disabled = true;
+
+  actions.append(editBtn, deleteBtn);
+
+  li.append(checkbox, content, actions);
+  return li;
+}
+
+function render(store) {
+  const list = document.querySelector(SELECTORS.list);
+  const empty = document.querySelector(SELECTORS.empty);
+  if (!list || !empty) return;
+
+  const tasks = store.getAll();
+  // replaceChildren con un fragment construido: evita reflows por tarea.
+  const frag = document.createDocumentFragment();
+  for (const task of tasks) {
+    frag.appendChild(createTaskElement(task));
+  }
+  list.replaceChildren(frag);
+  empty.hidden = tasks.length > 0;
+}
+
+function setupForm(store) {
+  const form = document.querySelector(SELECTORS.form);
+  const input = document.querySelector(SELECTORS.input);
+  if (!form || !input) return;
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const value = input.value;
+    try {
+      store.add({ title: value });
+      input.value = "";
+      input.removeAttribute("aria-invalid");
+      render(store);
+      input.focus();
+    } catch (err) {
+      input.setAttribute("aria-invalid", "true");
+      console.warn(`[${config.appName}] add failed:`, err);
+    }
+  });
+
+  // Limpia aria-invalid al empezar a escribir otra vez.
+  input.addEventListener("input", () => {
+    if (input.hasAttribute("aria-invalid")) {
+      input.removeAttribute("aria-invalid");
+    }
+  });
+}
+
+/* =====================================================================
+ *  Bootstrap
+ * ===================================================================== */
+
+function init() {
+  const store = createStore();
+  render(store);
+  setupForm(store);
+  console.info(`[${config.appName}] initialized`);
+}
+
+if (typeof document !== "undefined") {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+  } else {
+    init();
+  }
+}

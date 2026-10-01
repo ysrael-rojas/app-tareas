@@ -268,6 +268,110 @@ button {
   border: 1px dashed var(--color-border);
 }
 
+/* ---------- Tareas (item de lista) ---------- */
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.task {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.task:last-child {
+  border-bottom: 0;
+}
+
+.task__toggle {
+  margin-top: 4px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: var(--color-accent);
+  cursor: not-allowed;
+}
+
+.task__toggle:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  border-radius: var(--radius-sm);
+}
+
+.task__toggle:not(:disabled) {
+  cursor: pointer;
+}
+
+.task__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.task__title {
+  word-break: break-word;
+  font-weight: 500;
+}
+
+.task__description {
+  margin-top: var(--space-1);
+  color: var(--color-fg-muted);
+  font-size: 0.92rem;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.task.is-completed .task__title {
+  text-decoration: line-through;
+  color: var(--color-fg-muted);
+}
+
+.task__actions {
+  display: flex;
+  gap: var(--space-1);
+  flex: 0 0 auto;
+}
+
+.task__action {
+  padding: var(--space-1) var(--space-3);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-fg-muted);
+  font-size: 0.85rem;
+  cursor: not-allowed;
+  transition: color 0.15s ease-in-out, border-color 0.15s ease-in-out,
+    background 0.15s ease-in-out;
+}
+
+.task__action:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+.task__action:not(:disabled):hover {
+  color: var(--color-fg);
+  border-color: var(--color-fg-muted);
+}
+
+.task__action--danger:not(:disabled):hover {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.task__action:not(:disabled) {
+  cursor: pointer;
+}
+
+/* Estado de validación en el form (tarea 4 y pulido en 7) */
+.task-form__input[aria-invalid="true"] {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.18);
+}
+
 /* ---------- Breakpoint desktop ---------- */
 
 @media (min-width: 768px) {
