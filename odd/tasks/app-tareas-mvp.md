@@ -103,7 +103,8 @@ app-tareas/
 
 ## Evidence / commits
 
-Los commits se registran en este documento al cerrar cada tarea (hash + mensaje).
-Se actualizan en orden de cierre; el último commit aparece arriba.
+Los commits se registran en este documento al cerrar cada tarea. Una tarea
+puede producir 1-2 commits: el commit work-unit de la tarea y, cuando aplica,
+un commit de evidencia para reflejar este bloque en el repo.
 
-- `6673680` — **Tarea 1 / Bootstrap** — `chore: bootstrap initial project structure` (6 archivos: .gitignore, README.md, app.js, index.html, odd/tasks/app-tareas-mvp.md, styles.css).
+- **Tarea 1 / Bootstrap** — commit work-unit `6673680` (`chore: bootstrap initial project structure`) + commit de evidencia `a7f7a93` (`docs(odd): record task 1 bootstrap commit evidence`). Archivos: `.gitignore`, `README.md`, `app.js`, `index.html`, `odd/tasks/app-tareas-mvp.md`, `styles.css`. A partir de la tarea 2 la evidencia se incluye en el propio commit work-unit para mantener 1 commit por tarea cuando sea posible.
