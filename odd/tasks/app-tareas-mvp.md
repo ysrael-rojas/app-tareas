@@ -104,3 +104,6 @@ app-tareas/
 ## Evidence / commits
 
 Los commits se registran en este documento al cerrar cada tarea (hash + mensaje).
+Se actualizan en orden de cierre; el último commit aparece arriba.
+
+- `6673680` — **Tarea 1 / Bootstrap** — `chore: bootstrap initial project structure` (6 archivos: .gitignore, README.md, app.js, index.html, odd/tasks/app-tareas-mvp.md, styles.css).
