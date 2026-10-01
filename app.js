@@ -177,10 +177,10 @@ export function createStore() {
 }
 
 /* =====================================================================
- *  UI: render + form de creación
+ *  UI: render + form de creación + interacciones de mutación
  *  Usa textContent (no innerHTML) para todo el contenido user-provided,
- *  previniendo XSS. Las interacciones de toggle/edit/delete llegan en
- *  tareas 5-6; aquí solo se renderiza el shell y se conecta el alta.
+ *  previniendo XSS. Tarea 5 cablea toggle, edición inline y eliminación
+ *  con confirmación; tarea 6 añade filtros + contadores.
  * ===================================================================== */
 
 const SELECTORS = Object.freeze({
@@ -205,8 +205,6 @@ function createTaskElement(task) {
     "aria-label",
     `Marcar "${task.title}" como ${task.completed ? "pendiente" : "completada"}`,
   );
-  // disabled en tarea 4; tarea 5 lo habilita cuando cablee el handler
-  checkbox.disabled = true;
 
   const content = document.createElement("div");
   content.className = "task__content";
@@ -226,15 +224,12 @@ function createTaskElement(task) {
 
   const actions = document.createElement("div");
   actions.className = "task__actions";
-  // Botones editar/eliminar llegan en tarea 5. Marcadores data-action
-  // para que la tarea 5 los conecte sin tocar el render.
   const editBtn = document.createElement("button");
   editBtn.type = "button";
   editBtn.className = "task__action";
   editBtn.dataset.action = "edit";
   editBtn.textContent = "Editar";
   editBtn.setAttribute("aria-label", `Editar "${task.title}"`);
-  editBtn.disabled = true;
 
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
@@ -242,7 +237,6 @@ function createTaskElement(task) {
   deleteBtn.dataset.action = "delete";
   deleteBtn.textContent = "Eliminar";
   deleteBtn.setAttribute("aria-label", `Eliminar "${task.title}"`);
-  deleteBtn.disabled = true;
 
   actions.append(editBtn, deleteBtn);
 
@@ -293,6 +287,170 @@ function setupForm(store) {
   });
 }
 
+/* ---------- Edición inline ---------- */
+
+function createTaskEdit(task) {
+  const li = document.createElement("li");
+  li.className = "task task--editing";
+  li.dataset.id = task.id;
+
+  const form = document.createElement("form");
+  form.className = "task-edit-form";
+  form.noValidate = true;
+
+  const titleId = `task-edit-title-${task.id}`;
+  const descId = `task-edit-desc-${task.id}`;
+
+  const titleLabel = document.createElement("label");
+  titleLabel.className = "visually-hidden";
+  titleLabel.htmlFor = titleId;
+  titleLabel.textContent = "Título";
+
+  const titleInput = document.createElement("input");
+  titleInput.id = titleId;
+  titleInput.name = "title";
+  titleInput.type = "text";
+  titleInput.className = "task-edit-form__input";
+  titleInput.value = task.title;
+  titleInput.maxLength = config.titleMaxLength;
+  titleInput.required = true;
+  titleInput.setAttribute("aria-invalid", "false");
+
+  const descLabel = document.createElement("label");
+  descLabel.className = "visually-hidden";
+  descLabel.htmlFor = descId;
+  descLabel.textContent = "Descripción (opcional)";
+
+  const descInput = document.createElement("textarea");
+  descInput.id = descId;
+  descInput.name = "description";
+  descInput.className = "task-edit-form__textarea";
+  descInput.rows = 3;
+  descInput.maxLength = config.descriptionMaxLength;
+  descInput.placeholder = "Descripción (opcional)";
+  descInput.value = task.description;
+
+  const actions = document.createElement("div");
+  actions.className = "task-edit-form__actions";
+
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "submit";
+  saveBtn.className = "task-edit-form__save";
+  saveBtn.textContent = "Guardar";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.className = "task-edit-form__cancel";
+  cancelBtn.dataset.action = "cancel-edit";
+  cancelBtn.textContent = "Cancelar";
+
+  actions.append(saveBtn, cancelBtn);
+  form.append(titleLabel, titleInput, descLabel, descInput, actions);
+  li.append(form);
+
+  return { li, form, titleInput, descInput };
+}
+
+function enterEditMode(li, task, store) {
+  if (!task) return;
+  const edit = createTaskEdit(task);
+  li.replaceWith(edit.li);
+  edit.titleInput.focus();
+  edit.titleInput.select();
+}
+
+function handleSaveEdit(form, store) {
+  const li = form.closest(".task");
+  if (!li) return;
+  const id = li.dataset.id;
+  const titleInput = form.querySelector('input[name="title"]');
+  const descInput = form.querySelector('textarea[name="description"]');
+  if (!titleInput) return;
+  try {
+    store.update(id, {
+      title: titleInput.value,
+      description: descInput ? descInput.value : "",
+    });
+    render(store);
+  } catch (err) {
+    titleInput.setAttribute("aria-invalid", "true");
+    console.warn(`[${config.appName}] update failed:`, err);
+  }
+}
+
+function handleDelete(id, store) {
+  const task = store.getById(id);
+  if (!task) return;
+  const ok = window.confirm(`¿Eliminar la tarea "${task.title}"?`);
+  if (!ok) return;
+  store.remove(id);
+  render(store);
+}
+
+/* ---------- Eventos delegados sobre la lista ---------- */
+
+function setupTaskEvents(store) {
+  const list = document.querySelector(SELECTORS.list);
+  if (!list) return;
+
+  list.addEventListener("click", (event) => {
+    const target = event.target.closest("[data-action]");
+    if (!target || !list.contains(target)) return;
+    const action = target.dataset.action;
+    const li = target.closest(".task");
+    if (!li) return;
+    const id = li.dataset.id;
+    if (action === "edit") {
+      enterEditMode(li, store.getById(id), store);
+    } else if (action === "delete") {
+      handleDelete(id, store);
+    } else if (action === "cancel-edit") {
+      render(store);
+    }
+  });
+
+  list.addEventListener("change", (event) => {
+    const target = event.target;
+    if (
+      !(target instanceof HTMLInputElement) ||
+      target.type !== "checkbox" ||
+      target.dataset.action !== "toggle"
+    ) {
+      return;
+    }
+    const li = target.closest(".task");
+    if (!li) return;
+    const id = li.dataset.id;
+    const updated = store.toggle(id);
+    if (!updated) {
+      render(store);
+      return;
+    }
+    li.classList.toggle("is-completed", updated.completed);
+    target.checked = updated.completed;
+    target.setAttribute(
+      "aria-label",
+      `Marcar "${updated.title}" como ${updated.completed ? "pendiente" : "completada"}`,
+    );
+  });
+
+  list.addEventListener("submit", (event) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    if (!form.classList.contains("task-edit-form")) return;
+    event.preventDefault();
+    handleSaveEdit(form, store);
+  });
+
+  list.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const form = event.target.closest(".task-edit-form");
+    if (!form) return;
+    event.preventDefault();
+    render(store);
+  });
+}
+
 /* =====================================================================
  *  Bootstrap
  * ===================================================================== */
@@ -301,6 +459,7 @@ function init() {
   const store = createStore();
   render(store);
   setupForm(store);
+  setupTaskEvents(store);
   console.info(`[${config.appName}] initialized`);
 }
 

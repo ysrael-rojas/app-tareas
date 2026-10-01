@@ -372,6 +372,94 @@ button {
   box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.18);
 }
 
+/* ---------- Edición inline de tarea ---------- */
+
+.task--editing {
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-bg-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.task-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.task-edit-form__input,
+.task-edit-form__textarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.task-edit-form__textarea {
+  min-height: 4.5rem;
+}
+
+.task-edit-form__input:focus,
+.task-edit-form__textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+.task-edit-form__input[aria-invalid="true"] {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.18);
+}
+
+.task-edit-form__actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.task-edit-form__save,
+.task-edit-form__cancel {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.task-edit-form__save {
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+  border-color: var(--color-accent);
+}
+
+.task-edit-form__save:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.task-edit-form__cancel {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-fg-muted);
+}
+
+.task-edit-form__cancel:hover {
+  color: var(--color-fg);
+  border-color: var(--color-fg-muted);
+}
+
+.task-edit-form__save:focus,
+.task-edit-form__cancel:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35);
+}
+
 /* ---------- Breakpoint desktop ---------- */
 
 @media (min-width: 768px) {
