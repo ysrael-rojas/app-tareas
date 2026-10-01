@@ -59,6 +59,22 @@ port 4173 is already in use, Playwright reuses the existing server
 locally (`reuseExistingServer: !process.env.CI`); in CI it always starts
 its own.
 
+## Herramientas / MCPs
+
+- **Context7** — skill en `C:\Users\Lenovo\.agents\skills\context7-mcp\SKILL.md`,
+  server declarado en `~/.pi/agent/mcp.json` (`@upstash/context7-mcp@2.2.5`
+  vía `npx -y`). Trae documentación actualizada de librerías (React,
+  Vite, Playwright, Supabase, etc.) en vez de depender del
+  entrenamiento. Patrón: `resolve-library-id(libraryName, query)` →
+  `query-docs(libraryId, query)`. Una llamada por concepto, no
+  combines varios en una sola query. Útil cuando la respuesta
+  necesita datos que viven en la doc oficial.
+- **Playwright MCP artifacts** — capturas de pantalla y otros
+  artefactos que Playwright deja al ejercitar la app (no los
+  outputs de `playwright test`) van a `.playwright-mcp/`. Ya está
+  ignorado en `.gitignore` junto con `test-results/` y
+  `playwright-report/`.
+
 ## Structure
 
 - `src/main.jsx` mounts `<App />` into `#root`.
