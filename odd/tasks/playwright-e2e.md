@@ -120,4 +120,34 @@ smoke después).
 
 ## Evidence / commits
 
-_(se actualiza al cerrar la tarea)_
+- **Tarea 1 / Setup + smoke suite** — commit work-unit `a28f99c` (`feat(e2e): add Playwright as complementary real-browser smoke layer`). Archivos (7 files / 331 ins / 1 del):
+  - `package.json` (+5/-1): añadido `@playwright/test@^1.63.0` a devDeps; scripts nuevos `test:e2e: "playwright test"` y `test:all: "npm test && npm run test:e2e"`. `"test"` sigue siendo `"vitest run"`.
+  - `package-lock.json` (+46 líneas, autogenerado): lockfile actualizado por `npm install -D @playwright/test`.
+  - `playwright.config.js` (nuevo, 27 líneas, ESM): `testDir: ./tests/e2e`, `fullyParallel: true`, `forbidOnly: !!process.env.CI`, `retries: process.env.CI ? 2 : 0`, `reporter: 'list'`, `timeout: 15_000`, `use.baseURL: 'http://localhost:4173'` + `trace: 'on-first-retry'`, projects `[{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }]`, webServer `command: 'npm run build && npm run preview -- --port 4173'` con `timeout: 120_000` y `reuseExistingServer: !process.env.CI`.
+  - `tests/e2e/smoke.spec.js` (nuevo, 98 líneas, 7 tests): helper `freshPage(page)` (goto / + localStorage.clear() + reload); los 7 tests cubren lo que jsdom no puede: 1) app boots and shows the shell, 2) creating a task adds it to the list and announces it, 3) the task survives a full page reload, 4) toggling a task marks it is-completed and changes the filter count, 5) keyboard navigation moves focus and changes the active filter, 6) deleting a task shows confirm and removes the task when accepted, 7) the announcement live region receives the filter change message. Locators accesibles (`getByRole`, `getByPlaceholder`, `name` regex con `^=`) en lugar de selectores de clase.
+  - `AGENTS.md` (110 → 138 líneas): nueva sección `## E2E (Playwright)` entre Verify y Structure: qué es, comandos (`npm run test:e2e`, `test:all`, `npm test` solo Vitest), browser target (chromium only), smoke vs acceptance (RTL valida 10 criterios a nivel componente; Playwright valida comportamiento solo del navegador real), manual tools (`--ui`, `codegen`), gotcha del webServer.
+  - `odd/tasks/playwright-e2e.md` (nuevo, 123 líneas, A en este commit): este feature doc, con plan y acceptance criteria.
+  - `.gitignore` (+5 líneas): `test-results/`, `playwright-report/`, `playwright/.cache/` bajo `# Playwright artifacts` para evitar litter del working tree en futuras corridas.
+
+  Implementación delegada a `gentle-ai-worker` con `## Allowed edit surfaces` cubriendo los 4 archivos del feature (playwright.config.js, tests/e2e/smoke.spec.js, package.json, AGENTS.md). El lockfile y el feature doc quedaron fuera de la superficie autorizada por necesidad (npm install modifica el lockfile) y por orquestación (parent lo creó antes de delegar). El worker ajustó el locator del test 6 (anclar a `/^Eliminar/` en lugar de `/eliminar/i`) porque un título de tarea que contuviera "Eliminar" hacía que el aria-label del botón Editar también matcheara — fix en el spec, no en la app.
+
+  Validación independiente del parent: `npm test` → **92 passed (92)** en 15.15s; `npm run test:e2e` → **7 passed (7)** en 6.3s (incluye el coste del build que el webServer arranca automáticamente). Sin warnings ni errores en ninguna corrida.
+
+  Decisions / fixes del parent (no delegados):
+  - Añadido `.gitignore` (test-results/, playwright-report/, playwright/.cache/) que el worker reportó como artifact untracked fuera de su superficie autorizada.
+  - Lockfile modificado pese a no estar en la superficie autorizada, necesario por `npm install -D @playwright/test`.
+
+  Branch: `feat/playwright-e2e` (creada por el worker desde `main`). Listo para push y PR.
+
+## Resumen del feature
+
+- **Decisión:** Complemento E2E (NO reemplazo de Vitest+RTL). La suite RTL sigue siendo la red rápida de dev; Playwright es la capa que valida lo que jsdom no puede.
+- **Total tests combinados:** 92 Vitest (rápido, in-process, jsdom) + 7 Playwright (real-browser, contra build de producción).
+- **Comandos clave:**
+  - `npm test` — Vitest (~15s, dev loop).
+  - `npm run test:e2e` — Playwright (~6s adicionales, incluye build; CI-friendly).
+  - `npm run test:all` — ambos en secuencia.
+- **Browser target:** chromium solo al inicio. Añadir firefox/webkit es trivial: dos entradas `projects` más en `playwright.config.js`.
+- **Webserver:** Playwright arranca `npm run build && npm run preview -- --port 4173` automáticamente. `reuseExistingServer: !process.env.CI` para no pisar un preview local.
+- **Lo que NO se hizo:** firefox/webkit, GitHub Actions workflow, visual regression con screenshots, codegen como flujo diario. Todo es candidato para features ODD futuras si el usuario lo pide.
+- **Compatibilidad:** Vitest+RTL sigue intacto (92/92). El feature es estrictamente aditivo.
