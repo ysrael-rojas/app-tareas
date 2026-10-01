@@ -3,14 +3,14 @@
  *
  * Arquitectura: la Store vive fuera de React (cerrada en `createStore`) y se
  * entrega a los componentes vía Context (`StoreContext` + `StoreProvider`).
- * `useStore` recupera la Store del Context y `useTasks` la sincroniza con
- * `useSyncExternalStore` (pub-sub). El placeholder muestra el conteo vivo de
- * tareas como smoke test de la sincronización; las tareas 5-8 lo reemplazan
- * por componentes reales.
+ * `useStore` recupera la Store del Context. El shell renderiza el
+ * `<TaskForm />` (formulario de creación, tarea 5); los componentes
+ * restantes (`<Filters />`, `<TaskList />`, `<TaskEditForm />`) llegan en las
+ * tareas 6-8.
  */
 import { useState, useContext, createContext } from 'react';
 import { createStore } from './store/store.js';
-import { useTasks } from './store/useTasks.js';
+import TaskForm from './components/TaskForm.jsx';
 
 export const StoreContext = createContext(null);
 
@@ -37,10 +37,6 @@ export default function App() {
 }
 
 function Shell() {
-  const store = useStore();
-  const tasks = useTasks(store);
-  // Render header + a minimal live placeholder for the rest.
-  // Tasks 5-8 will replace the placeholder with real components.
   return (
     <>
       <header className="app-header">
@@ -50,9 +46,7 @@ function Shell() {
         </p>
       </header>
       <main className="app-main">
-        <p className="placeholder" data-testid="app-shell-placeholder">
-          App shell listo. Tareas: {tasks.length}. Componentes en tareas 5–8.
-        </p>
+        <TaskForm />
       </main>
     </>
   );
