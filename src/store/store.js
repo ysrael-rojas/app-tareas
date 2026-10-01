@@ -7,6 +7,10 @@
 // `normalizeDescription`, `isValidTaskShape`, `loadInitial`, `persist`).
 // `makeId` y `nowIso` quedan privados: detalles de implementación sin
 // contrato público.
+//
+// La Store expone pub-sub (`subscribe`/`getSnapshot`) para sincronizar React
+// vía `useSyncExternalStore`. `getAll` sigue devolviendo copia defensiva;
+// `getSnapshot` devuelve la referencia interna (solo lectura) para React.
 
 /** Configuración inmutable de la Store. */
 export const config = Object.freeze({
@@ -137,10 +141,37 @@ export function persist(tasks) {
 
 /**
  * Crea una Store cerrada sobre su estado cargado una sola vez.
- * @returns {object} API { getAll, getById, add, update, toggle, remove }.
+ * @returns {object} API { getAll, getById, add, update, toggle, remove,
+ *   subscribe, getSnapshot }.
  */
 export function createStore() {
   let tasks = loadInitial();
+
+  const subscribers = new Set();
+
+  /**
+   * Registers a callback invoked after every successful mutation.
+   * @param {Function} fn
+   * @returns {Function} unsubscribe function that removes `fn`.
+   */
+  function subscribe(fn) {
+    subscribers.add(fn);
+    return () => subscribers.delete(fn);
+  }
+
+  /**
+   * Returns the raw internal tasks array reference. The reference is stable
+   * between mutations, so callers must treat it as read-only. Intended for
+   * React `useSyncExternalStore`.
+   * @returns {Array}
+   */
+  function getSnapshot() {
+    return tasks;
+  }
+
+  function notify() {
+    for (const fn of subscribers) fn();
+  }
 
   /** @returns {Array} copia defensiva de las tareas. */
   function getAll() {
@@ -154,7 +185,7 @@ export function createStore() {
 
   /**
    * @param {{ title: string, description?: string }} input
-   * @returns {object} la tarea creada.
+   * @returns {object} la tarea creada. Notifies subscribers on success.
    */
   function add({ title, description = "" }) {
     const normalizedTitle = normalizeTitle(title);
@@ -170,6 +201,7 @@ export function createStore() {
     };
     tasks = [...tasks, task];
     persist(tasks);
+    notify();
     return task;
   }
 
@@ -177,6 +209,7 @@ export function createStore() {
    * @param {string} id
    * @param {object} patch
    * @returns {object|null} la tarea actualizada, o null si no existe.
+   *   Notifies subscribers on success.
    */
   function update(id, patch) {
     const idx = tasks.findIndex((t) => t.id === id);
@@ -201,24 +234,33 @@ export function createStore() {
     };
     tasks = [...tasks.slice(0, idx), next, ...tasks.slice(idx + 1)];
     persist(tasks);
+    notify();
     return next;
   }
 
-  /** @param {string} id @returns {object|null} */
+  /**
+   * Delegates to `update`, which notifies subscribers on success.
+   * @param {string} id
+   * @returns {object|null}
+   */
   function toggle(id) {
     const current = getById(id);
     if (!current) return null;
     return update(id, { completed: !current.completed });
   }
 
-  /** @param {string} id @returns {boolean} */
+  /**
+   * @param {string} id
+   * @returns {boolean} Notifies subscribers on success.
+   */
   function remove(id) {
     const idx = tasks.findIndex((t) => t.id === id);
     if (idx === -1) return false;
     tasks = [...tasks.slice(0, idx), ...tasks.slice(idx + 1)];
     persist(tasks);
+    notify();
     return true;
   }
 
-  return { getAll, getById, add, update, toggle, remove };
+  return { getAll, getById, add, update, toggle, remove, subscribe, getSnapshot };
 }

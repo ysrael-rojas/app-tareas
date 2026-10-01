@@ -423,3 +423,143 @@ describe('persist', () => {
     expect(parsed.tasks).toHaveLength(1);
   });
 });
+
+describe('store pub-sub', () => {
+  describe('subscribe', () => {
+    it('registers a callback and returns a callable unsubscribe function', () => {
+      const store = createStore();
+      const fn = vi.fn();
+      const unsubscribe = store.subscribe(fn);
+      expect(typeof unsubscribe).toBe('function');
+      unsubscribe();
+    });
+
+    it('calls the callback after add with the new store state', () => {
+      const store = createStore();
+      let snapshot;
+      const fn = vi.fn(() => {
+        snapshot = store.getSnapshot();
+      });
+      store.subscribe(fn);
+
+      const task = store.add({ title: 'Tarea' });
+
+      expect(fn).toHaveBeenCalledTimes(1);
+      expect(snapshot).toHaveLength(1);
+      expect(snapshot).toContainEqual(task);
+    });
+
+    it('calls the callback after update only on success', () => {
+      const store = createStore();
+      const fn = vi.fn();
+      store.subscribe(fn);
+      const task = store.add({ title: 'Original' });
+      fn.mockClear();
+
+      expect(store.update('missing', { title: 'X' })).toBeNull();
+      expect(fn).not.toHaveBeenCalled();
+
+      store.update(task.id, { title: 'Nuevo' });
+      expect(fn).toHaveBeenCalledTimes(1);
+      expect(store.getSnapshot()[0].title).toBe('Nuevo');
+    });
+
+    it('calls the callback after toggle only when the id exists', () => {
+      const store = createStore();
+      const fn = vi.fn();
+      store.subscribe(fn);
+      const task = store.add({ title: 'Tarea' });
+      fn.mockClear();
+
+      expect(store.toggle('missing')).toBeNull();
+      expect(fn).not.toHaveBeenCalled();
+
+      const toggled = store.toggle(task.id);
+      expect(toggled.completed).toBe(true);
+      expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls the callback after remove only when the id exists', () => {
+      const store = createStore();
+      const fn = vi.fn();
+      store.subscribe(fn);
+      const task = store.add({ title: 'Tarea' });
+      fn.mockClear();
+
+      expect(store.remove('missing')).toBe(false);
+      expect(fn).not.toHaveBeenCalled();
+
+      expect(store.remove(task.id)).toBe(true);
+      expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('unsubscribe removes the callback so later mutations do not call it', () => {
+      const store = createStore();
+      const fn = vi.fn();
+      const unsubscribe = store.subscribe(fn);
+
+      store.add({ title: 'Antes' });
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      unsubscribe();
+      store.add({ title: 'Después' });
+      expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('notifies multiple subscribers in registration order', () => {
+      const store = createStore();
+      const order = [];
+      store.subscribe(() => order.push('first'));
+      store.subscribe(() => order.push('second'));
+      store.subscribe(() => order.push('third'));
+
+      store.add({ title: 'Tarea' });
+
+      expect(order).toEqual(['first', 'second', 'third']);
+    });
+  });
+
+  describe('getSnapshot', () => {
+    it('returns the same reference between calls with no mutation', () => {
+      const store = createStore();
+      const snap1 = store.getSnapshot();
+      const snap2 = store.getSnapshot();
+      expect(Object.is(snap1, snap2)).toBe(true);
+    });
+
+    it('returns a different reference after add, update, toggle and remove', () => {
+      const store = createStore();
+      const before = store.getSnapshot();
+
+      const task = store.add({ title: 'Tarea' });
+      const afterAdd = store.getSnapshot();
+      expect(Object.is(afterAdd, before)).toBe(false);
+
+      store.update(task.id, { title: 'Actualizada' });
+      const afterUpdate = store.getSnapshot();
+      expect(Object.is(afterUpdate, afterAdd)).toBe(false);
+
+      store.toggle(task.id);
+      const afterToggle = store.getSnapshot();
+      expect(Object.is(afterToggle, afterUpdate)).toBe(false);
+
+      store.remove(task.id);
+      const afterRemove = store.getSnapshot();
+      expect(Object.is(afterRemove, afterToggle)).toBe(false);
+    });
+  });
+
+  describe('integration', () => {
+    it('snapshot reflects the store after adds and a remove', () => {
+      const store = createStore();
+      const a = store.add({ title: 'A' });
+      const b = store.add({ title: 'B' });
+      const c = store.add({ title: 'C' });
+      store.remove(b.id);
+
+      const snap = store.getSnapshot();
+      expect(snap).toHaveLength(2);
+      expect(snap.map((t) => t.id)).toEqual([a.id, c.id]);
+    });
+  });
+});
